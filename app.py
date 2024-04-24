@@ -19,7 +19,7 @@ def download_video(url, save_path):
 
 def process_video(inp, out):
     commands = [
-        ['./spatial make -i {0}.MOV -f ou -o {1} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --primary right --projection rect'.format(inp, out)],
+        ['./spatial make -i {0} -f ou -o {1} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --primary right --projection rect'.format(inp, out)],
     ]
     for command in commands:
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -46,7 +46,7 @@ def processVideo():
 
     success = download_video(video_url, video_name)
     if success:
-        success = process_video(video_name, 'output')
+        success = process_video(video_name, 'output.mp4')
         if not success:
             return jsonify({'error': 'Failed to process video'}), 500
         return jsonify({'output': 'output.mp4'}), 200
