@@ -46,10 +46,10 @@ def processVideo():
 
     success = download_video(video_url, video_name)
     if success:
-        success = process_video(video_name, 'output.mp4')
+        success = process_video(video_name, 'output.mov')
         if not success:
             return jsonify({'error': 'Failed to process video'}), 500
-        return jsonify({'output': 'output.mp4'}), 200
+        return jsonify({'output': 'output.mov'}), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
     
