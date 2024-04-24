@@ -1,8 +1,8 @@
 import os
 import subprocess
 import time
-import boto3
 
+import boto3
 import requests
 from flask import Flask, jsonify, request
 
@@ -20,7 +20,9 @@ def download_video(url, save_path):
 
 def process_video(inp, out):
     commands = [
-        ['./spatial make -i {0} -f ou -o {1} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --primary right --projection rect'.format(inp, out)],
+        # './spatial make -i {0} -f ou -o {1} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --primary right --projection rect'.format(inp, out),
+        # spatial make -i {inupt_file} -f ou -o {output_file} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --primary right
+        './spatial make -i {0} -f ou -o {1} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --primary right'.format(inp, out)
     ]
     for command in commands:
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -58,13 +60,12 @@ def processVideo():
     if not video_url:
         return jsonify({'error': 'URL not provided'}), 400
 
-    save_directory = '\\downloads'
-    # get extension from url
     video_name = 'test' + str(int(time.time())) + '.' + video_url.split('.')[-1] 
+    output_file = str(int(time.time())) + '.mov'
 
     success = download_video(video_url, video_name)
     if success:
-        success, url = process_video(video_name, 'output.mov')
+        success, url = process_video(video_name, output_file)
         if not success:
             return jsonify({'error': 'Failed to process video'}), 500
         return jsonify({'output': url}), 200
