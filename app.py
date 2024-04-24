@@ -22,7 +22,7 @@ def process_video(inp, out):
         ['./spatial make -i {0}.MOV -f ou -o {1} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --primary right --projection rect'.format(inp, out)],
     ]
     for command in commands:
-        process = subprocess.Popen(command)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
 
         if process.returncode != 0:
