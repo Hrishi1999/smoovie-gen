@@ -23,9 +23,12 @@ def process_video(inp, out):
     ]
     for command in commands:
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        print('Running command: {}'.format(command))
+        print('Output: {}'.format(process.stdout.read()))
         process.wait()
 
         if process.returncode != 0:
+            print('Error: {}'.format(process.stderr.read()))
             return False
 
     return True
