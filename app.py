@@ -9,6 +9,7 @@ app = Flask(__name__)
 
 def download_video(url, save_path):
     response = requests.get(url)
+    print(response.status_code)
     if response.status_code == 200:
         with open(save_path, 'wb') as f:
             f.write(response.content)
@@ -36,13 +37,13 @@ def processVideo():
     if not video_url:
         return jsonify({'error': 'URL not provided'}), 400
 
-    save_directory = '/downloads'
-    video_name = 'video.mov'
-    save_path = os.path.join(save_directory, video_name)
+    save_directory = '\\downloads'
+    # get extension from url
+    video_name = 'test' + str(int(time.time())) + '.' + video_url.split('.')[-1] 
 
-    success = download_video(video_url, save_path)
+    success = download_video(video_url, video_name)
     if success:
-        success = process_video(save_path, 'output')
+        success = process_video(video_name, 'output')
         if not success:
             return jsonify({'error': 'Failed to process video'}), 500
         return jsonify({'output': 'output.MOV'}), 200
