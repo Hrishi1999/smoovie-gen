@@ -28,20 +28,28 @@ def process_video(inp, out):
         print('Output: {}'.format(process.stdout.read()))
         process.wait()
 
-        if process.returncode != 0:
-            print('Error: {}'.format(process.stderr.read()))
-            return False
-        
-        s3 = boto3.client('s3')
-        try:
-            with open(out, 'rb') as data:
-                s3.upload_fileobj(data, "smoovie-gen-video", out)
-        except Exception as e:
-            print(f"Error uploading file to S3: {e}")
-            return False
+    if process.returncode != 0:
+        print('Error: {}'.format(process.stderr.read()))
+        return False, ''
+    
+    s3 = boto3.client('s3')
+    try:
+        with open(out, 'rb') as data:
+            s3.upload_fileobj(data, "smoovie-gen-video", out)
+    except Exception as e:
+        print(f"Error uploading file to S3: {e}")
+        return False, ''
+
+    try:
+        presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': "smoovie-gen-video", 'Key': out}, ExpiresIn=3600*24)
+    except Exception as e:
+        print(f"Error generating pre-signed URL: {e}")
+        return False, None
+
+    return True, presigned_url
 
 
-    return True
+    return True, ''
 
 @app.route('/process', methods=['POST'])
 def processVideo():
@@ -56,10 +64,10 @@ def processVideo():
 
     success = download_video(video_url, video_name)
     if success:
-        success = process_video(video_name, 'output.mov')
+        success, url = process_video(video_name, 'output.mov')
         if not success:
             return jsonify({'error': 'Failed to process video'}), 500
-        return jsonify({'output': 'output.mov'}), 200
+        return jsonify({'output': url}), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
     
