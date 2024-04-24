@@ -48,6 +48,10 @@ def processVideo():
         return jsonify({'output': 'output.MOV'}), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
+    
+@app.route('/test', methods=['GET'])
+def test():
+    return jsonify({'message': 'Hello World!'})
 
 if __name__ == '__main__':
     app.run(debug=True, port=3000, host='0.0.0.0')
