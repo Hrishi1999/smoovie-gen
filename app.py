@@ -1,6 +1,7 @@
 import os
 import subprocess
 import time
+import boto3
 
 import requests
 from flask import Flask, jsonify, request
@@ -30,6 +31,15 @@ def process_video(inp, out):
         if process.returncode != 0:
             print('Error: {}'.format(process.stderr.read()))
             return False
+        
+        s3 = boto3.client('s3')
+        try:
+            with open(out, 'rb') as data:
+                s3.upload_fileobj(data, "smoovie-gen-video", out)
+        except Exception as e:
+            print(f"Error uploading file to S3: {e}")
+            return False
+
 
     return True
 
