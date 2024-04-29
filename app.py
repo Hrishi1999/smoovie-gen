@@ -60,8 +60,8 @@ def processVideo():
     if not video_url:
         return jsonify({'error': 'URL not provided'}), 400
 
-    video_name = 'test' + str(int(time.time())) + '.' + video_url.split('.')[-1] 
-    output_file = str(int(time.time())) + '.mov'
+    video_name = video_url.split('/')[-1]
+    output_file = video_name.split('.')[0] + '.mov'
 
     success = download_video(video_url, video_name)
     if success:
