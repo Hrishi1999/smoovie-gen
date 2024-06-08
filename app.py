@@ -43,7 +43,7 @@ def process_video(inp, out):
         return False, ''
 
     try:
-        presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': "smoovie-gen-video", 'Key': out}, ExpiresIn=3600*24)
+        presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': "spatial-cut-proc", 'Key': out}, ExpiresIn=3600*24)
     except Exception as e:
         print(f"Error generating pre-signed URL: {e}")
         return False, None
