@@ -37,13 +37,13 @@ def process_video(inp, out):
     s3 = boto3.client('s3')
     try:
         with open(out, 'rb') as data:
-            s3.upload_fileobj(data, "smoovie-gen-video", out)
+            s3.upload_fileobj(data, "spcut-output", out)
     except Exception as e:
         print(f"Error uploading file to S3: {e}")
         return False, ''
 
     try:
-        presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': "spatial-cut-proc", 'Key': out}, ExpiresIn=3600*24)
+        presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': "spcut-output", 'Key': out}, ExpiresIn=3600*24)
     except Exception as e:
         print(f"Error generating pre-signed URL: {e}")
         return False, None
