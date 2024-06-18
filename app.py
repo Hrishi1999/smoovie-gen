@@ -50,6 +50,16 @@ def process_video(inp, out):
 
     return True, presigned_url
 
+def split_video(inp, out):
+    commands = [
+      ['./spatial-media-kit-tool --input-file {0}.MOV --output-dir {1}'.format(inp, out)],
+    ]
+    for command in commands:
+        process = subprocess.Popen(command)
+        process.wait()
+
+        if process.returncode != 0:
+            return False
 
     return True, ''
 
@@ -69,6 +79,26 @@ def processVideo():
         if not success:
             return jsonify({'error': 'Failed to process video'}), 500
         return jsonify({'output': url}), 200
+    else:
+        return jsonify({'error': 'Failed to download video'}), 500
+    
+
+@app.route('/split', methods=['POST'])
+def splitVideo():
+    data = request.json
+    video_url = data.get('url')
+    if not video_url:
+        return jsonify({'error': 'URL not provided'}), 400
+
+    video_name = video_url.split('/')[-1].split('.')[0]
+    output_dir = video_name + '_split'
+
+    success = download_video(video_url, video_name + '.MOV')
+    if success:
+        success = split_video(video_name, output_dir)
+        if not success:
+            return jsonify({'error': 'Failed to split video'}), 500
+        return jsonify({'output': output_dir}), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
     
