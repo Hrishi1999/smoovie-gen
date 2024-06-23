@@ -52,7 +52,7 @@ def process_video(inp, out):
 
 def split_video(inp, out):
     commands = [
-      './spatial-media-kit-tool --input-file {0}.MOV --output-dir {1}'.format(inp, out),
+      './spatialmkt --input-file {0}.MOV --output-dir {1}'.format(inp, out),
     ]
     for command in commands:
         process = subprocess.Popen(command)
