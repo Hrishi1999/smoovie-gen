@@ -1,4 +1,5 @@
 import glob
+import logging
 import os
 import subprocess
 import time
@@ -8,6 +9,8 @@ import requests
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def download_video(url, save_path):
     response = requests.get(url)
@@ -52,29 +55,37 @@ def process_video(inp, out):
     return True, presigned_url
 
 def split_video(inp):
+    logger.info(f"Starting to split video: {inp}")
     commands = [
         './spatialmkt --input-file {0}.MOV'.format(inp),
     ]
     for command in commands:
+        logger.info(f"Executing command: {command}")
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
 
         if process.returncode != 0:
+            logger.error(f"Command failed with return code: {process.returncode}")
             return False
         
+    logger.info("Video split successfully")
+    
     s3_client = boto3.client('s3')
     bucket_name = 'spcut-split'
     result = {}
 
+    logger.info("Starting to upload files to S3")
     for suffix in ['LEFT', 'RIGHT']:
         matching_files = [f for f in os.listdir('/') if f.endswith(f"{suffix}.mov")]
         
         if not matching_files:
+            logger.error(f"No matching files found for suffix: {suffix}")
             return False, {}
         
         local_file = os.path.join('/', matching_files[0])
         s3_key = f"{matching_files[0]}"
         
+        logger.info(f"Uploading file to S3: {local_file}")
         s3_client.upload_file(local_file, bucket_name, s3_key)
         
         url = s3_client.generate_presigned_url('get_object',
@@ -82,7 +93,9 @@ def split_video(inp):
                                                         'Key': s3_key},
                                                 ExpiresIn=3600)
         result[suffix.lower()] = url
+        logger.info(f"Generated presigned URL for {suffix}")
 
+    logger.info("Video split and upload completed successfully")
     return True, result
 
 
