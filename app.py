@@ -1,3 +1,4 @@
+import glob
 import os
 import subprocess
 import time
@@ -50,9 +51,9 @@ def process_video(inp, out):
 
     return True, presigned_url
 
-def split_video(inp, out):
+def split_video(inp):
     commands = [
-      './spatialmkt --input-file {0}.MOV --output-dir {1}'.format(inp, out),
+        './spatialmkt --input-file {0}.MOV'.format(inp),
     ]
     for command in commands:
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -60,8 +61,42 @@ def split_video(inp, out):
 
         if process.returncode != 0:
             return False
+        
+    s3_client = boto3.client('s3')
+    bucket_name = 'spcut-split'
+    result = {}
 
-    return True, ''
+    for suffix in ['LEFT', 'RIGHT']:
+        matching_files = [f for f in os.listdir('/') if f.endswith(f"{suffix}.mov")]
+        
+        if not matching_files:
+            return False, {}
+        
+        local_file = os.path.join('/', matching_files[0])
+        s3_key = f"videos/{matching_files[0]}"
+        
+        s3_client.upload_file(local_file, bucket_name, s3_key)
+        
+        url = s3_client.generate_presigned_url('get_object',
+                                                Params={'Bucket': bucket_name,
+                                                        'Key': s3_key},
+                                                ExpiresIn=3600)
+        result[suffix.lower()] = url
+
+    return True, result
+
+
+def cleanup(inp):
+    input_file = f"{inp}.MOV"
+    if os.path.exists(input_file):
+        os.remove(input_file)
+    
+    for suffix in ['LEFT', 'RIGHT']:
+        pattern = f"/*{suffix}.mov"
+        matching_files = glob.glob(pattern)
+        for file in matching_files:
+            if os.path.exists(file):
+                os.remove(file)
 
 @app.route('/process', methods=['POST'])
 def processVideo():
@@ -78,6 +113,7 @@ def processVideo():
         success, url = process_video(video_name, output_file)
         if not success:
             return jsonify({'error': 'Failed to process video'}), 500
+        cleanup()
         return jsonify({'output': url}), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
@@ -95,7 +131,7 @@ def splitVideo():
 
     success = download_video(video_url, video_name + '.MOV')
     if success:
-        success = split_video(video_name, output_dir)
+        success, response = split_video(video_name, output_dir)
         if not success:
             return jsonify({'error': 'Failed to split video'}), 500
         return jsonify({'output': output_dir}), 200
