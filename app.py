@@ -59,7 +59,11 @@ def split_video(inp):
     command = f'./spatialmkt --input-file {inp}.MOV'
     
     logger.info(f"Executing command: {command}")
-    process = subprocess.run(command, shell=True, capture_output=True, text=True)
+    process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, 
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
+                                universal_newlines=True)
+    
+    stdout, sterr = process.communicate(input='\n')
     
     if process.returncode != 0:
         logger.error(f"Command failed with return code: {process.returncode}")
