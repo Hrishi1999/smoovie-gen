@@ -55,7 +55,7 @@ def split_video(inp, out):
       './spatialmkt --input-file {0}.MOV --output-dir {1}'.format(inp, out),
     ]
     for command in commands:
-        process = subprocess.Popen(command)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         process.wait()
 
         if process.returncode != 0:
