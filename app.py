@@ -56,18 +56,15 @@ def process_video(inp, out):
 
 def split_video(inp):
     logger.info(f"Starting to split video: {inp}")
-    commands = [
-        './spatialmkt --input-file {0}.MOV'.format(inp),
-    ]
-    for command in commands:
-        logger.info(f"Executing command: {command}")
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        process.wait()
-
-        if process.returncode != 0:
-            logger.error(f"Command failed with return code: {process.returncode}")
-            return False
-        
+    command = f'./spatialmkt --input-file {inp}.MOV'
+    
+    logger.info(f"Executing command: {command}")
+    process = subprocess.run(command, shell=True, capture_output=True, text=True)
+    
+    if process.returncode != 0:
+        logger.error(f"Command failed with return code: {process.returncode}")
+        return False, {}
+    
     logger.info("Video split successfully")
     
     s3_client = boto3.client('s3')
@@ -76,14 +73,13 @@ def split_video(inp):
 
     logger.info("Starting to upload files to S3")
     for suffix in ['LEFT', 'RIGHT']:
-        matching_files = [f for f in os.listdir('/') if f.endswith(f"{suffix}.mov")]
+        local_file = f'/{inp}_{suffix}.mov'
         
-        if not matching_files:
-            logger.error(f"No matching files found for suffix: {suffix}")
+        if not os.path.exists(local_file):
+            logger.error(f"File not found: {local_file}")
             return False, {}
         
-        local_file = os.path.join('/', matching_files[0])
-        s3_key = f"{matching_files[0]}"
+        s3_key = f"{inp}_{suffix}.mov"
         
         logger.info(f"Uploading file to S3: {local_file}")
         s3_client.upload_file(local_file, bucket_name, s3_key)
