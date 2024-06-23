@@ -73,7 +73,7 @@ def split_video(inp):
             return False, {}
         
         local_file = os.path.join('/', matching_files[0])
-        s3_key = f"videos/{matching_files[0]}"
+        s3_key = f"{matching_files[0]}"
         
         s3_client.upload_file(local_file, bucket_name, s3_key)
         
@@ -127,14 +127,13 @@ def splitVideo():
         return jsonify({'error': 'URL not provided'}), 400
 
     video_name = video_url.split('/')[-1].split('.')[0]
-    output_dir = video_name + '_split'
 
     success = download_video(video_url, video_name + '.MOV')
     if success:
         success, response = split_video(video_name)
         if not success:
             return jsonify({'error': 'Failed to split video'}), 500
-        return jsonify({'output': output_dir}), 200
+        return jsonify({'output': response}), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
     
