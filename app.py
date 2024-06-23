@@ -131,7 +131,7 @@ def splitVideo():
 
     success = download_video(video_url, video_name + '.MOV')
     if success:
-        success, response = split_video(video_name, output_dir)
+        success, response = split_video(video_name)
         if not success:
             return jsonify({'error': 'Failed to split video'}), 500
         return jsonify({'output': output_dir}), 200
