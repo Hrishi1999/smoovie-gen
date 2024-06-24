@@ -165,6 +165,7 @@ def splitVideo():
         success, response = split_video(video_name)
         if not success:
             return jsonify({'error': 'Failed to split video'}), 500
+        cleanup(video_name)
         return jsonify(response), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
