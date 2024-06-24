@@ -66,21 +66,21 @@ def split_video(inp):
     stdout, sterr = process.communicate(input='\n')
     
     if process.returncode != 0:
-        logger.error(f"Command failed with return code: {process.returncode}")
+        logger.error(f"failed with code: {process.returncode}")
         return False, {}
     
-    logger.info("Video split successfully")
+    logger.info("split done")
     
     s3_client = boto3.client('s3')
     bucket_name = 'spcut-split'
     result = {}
 
-    logger.info("Starting to upload files to S3")
+    logger.info("uploading to s3")
     for suffix in ['LEFT', 'RIGHT']:
         local_file = f'{inp}_{suffix}.mov'
         
         if not os.path.exists(local_file):
-            logger.error(f"File not found: {local_file}")
+            logger.error(f"not found: {local_file}")
             return False, {}
         
         s3_key = f"{inp}_{suffix}.mov"
@@ -93,23 +93,42 @@ def split_video(inp):
                                                         'Key': s3_key},
                                                 ExpiresIn=3600)
         result[suffix.lower()] = url
-        logger.info(f"Generated presigned URL for {suffix}")
+        logger.info(f"gen presigned url done {suffix}")
 
-    logger.info("Video split and upload completed successfully")
+    logger.info("all good")
     return True, result
 
 
 def cleanup(inp):
+    logger.info(f"cleaning: {inp}")
     input_file = f"{inp}.MOV"
     if os.path.exists(input_file):
-        os.remove(input_file)
-    
+        try:
+            os.remove(input_file)
+            logger.info(f"deleted: {input_file}")
+        except Exception as e:
+            logger.error(f"failed to del {input_file}: {str(e)}")
+    else:
+        logger.warning(f"delete: not found: {input_file}")
+
     for suffix in ['LEFT', 'RIGHT']:
         pattern = f"/*{suffix}.mov"
         matching_files = glob.glob(pattern)
+        
+        if not matching_files:
+            logger.warning(f"no files found with: {pattern}")
+        
         for file in matching_files:
             if os.path.exists(file):
-                os.remove(file)
+                try:
+                    os.remove(file)
+                    logger.info(f"deleted: {file}")
+                except Exception as e:
+                    logger.error(f"Failed to delete file {file}: {str(e)}")
+            else:
+                logger.warning(f"File not found: {file}")
+
+    logger.info("cleanup done")
 
 @app.route('/process', methods=['POST'])
 def processVideo():
@@ -146,7 +165,7 @@ def splitVideo():
         success, response = split_video(video_name)
         if not success:
             return jsonify({'error': 'Failed to split video'}), 500
-        return jsonify({'output': response}), 200
+        return jsonify(response), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
     
