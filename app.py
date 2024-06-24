@@ -112,7 +112,7 @@ def cleanup(inp):
         logger.warning(f"delete: not found: {input_file}")
 
     for suffix in ['LEFT', 'RIGHT']:
-        pattern = f"/*{suffix}.mov"
+        pattern = f"*{suffix}.mov"
         matching_files = glob.glob(pattern)
         
         if not matching_files:
