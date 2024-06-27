@@ -7,6 +7,8 @@ import time
 import boto3
 import requests
 from flask import Flask, jsonify, request
+import urllib.parse
+
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -246,9 +248,14 @@ def mergeVideos():
     
     if not left_url or not right_url:
         return jsonify({'error': 'Both left and right video URLs are required'}), 400
+    
+    def get_filename_from_url(url):
+        parsed_url = urllib.parse.urlparse(url)
+        path = urllib.parse.unquote(parsed_url.path)
+        return os.path.basename(path)
 
-    left_file = 'left_' + left_url.split('/')[-1]
-    right_file = 'right_' + right_url.split('/')[-1]
+    left_file = 'left_' + get_filename_from_url(left_url)
+    right_file = 'right_' + get_filename_from_url(right_url)
     output_file = f"{uid}_{int(time.time())}.mov"
 
     if download_video(left_url, left_file) and download_video(right_url, right_file):
