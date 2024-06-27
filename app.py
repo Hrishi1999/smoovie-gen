@@ -242,7 +242,7 @@ def mergeVideos():
     uid = data.get('uid')
     left_url = data.get('left_url')
     right_url = data.get('right_url')
-    quality = data.get('quality', 0.8)
+    quality = data.get('quality', 50)
     primary_eye = data.get('primary_eye', 'left')
     horizontal_field_of_view = data.get('horizontal_field_of_view', 63.4)
     
