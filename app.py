@@ -177,6 +177,21 @@ def cleanup(inp):
                 logger.warning(f"File not found: {file}")
 
     logger.info("cleanup done")
+    
+def cleanup_merged(file):
+    logger.info(f"cleaning merged file: {file}")
+    
+    if os.path.exists(file):
+        try:
+            os.remove(file)
+            logger.info(f"deleted merged file: {file}")
+        except Exception as e:
+            logger.error(f"failed to delete merged file {file}: {str(e)}")
+    else:
+        logger.warning(f"merged file not found for deletion: {file}")
+    
+    logger.info("cleanup post-merge")
+
 
 @app.route('/process', methods=['POST'])
 def processVideo():
@@ -226,7 +241,7 @@ def mergeVideos():
     left_url = data.get('left_url')
     right_url = data.get('right_url')
     quality = data.get('quality', 0.8)
-    left_is_primary = data.get('primary_eye', 'left')
+    primary_eye = data.get('primary_eye', 'left')
     horizontal_field_of_view = data.get('horizontal_field_of_view', 63.4)
     
     if not left_url or not right_url:
@@ -239,8 +254,9 @@ def mergeVideos():
     if download_video(left_url, left_file) and download_video(right_url, right_file):
         success, result = merge_videos(left_file, right_file, quality, left_is_primary, horizontal_field_of_view, output_file)
         
-        cleanup(left_file.split('.')[0])
-        cleanup(right_file.split('.')[0])
+        cleanup_merged(left_file)
+        cleanup_merged(right_file)
+        cleanup_merged(output_file) 
         
         if success:
             return jsonify({'output': result}), 200
