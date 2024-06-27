@@ -252,7 +252,7 @@ def mergeVideos():
     output_file = f"{uid}_{int(time.time())}.mov"
 
     if download_video(left_url, left_file) and download_video(right_url, right_file):
-        success, result = merge_videos(left_file, right_file, quality, left_is_primary, horizontal_field_of_view, output_file)
+        success, result = merge_videos(left_file, right_file, quality, primary_eye, horizontal_field_of_view, output_file)
         
         cleanup_merged(left_file)
         cleanup_merged(right_file)
