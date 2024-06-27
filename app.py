@@ -99,6 +99,54 @@ def split_video(inp):
     return True, result
 
 
+def merge_videos(left_file, right_file, quality, primary_eye, horizontal_field_of_view, output_file):
+    logger.info(f"merging: {left_file} and {right_file}")
+    
+    cmd = [
+        "./spatialmkt", "merge",
+        "--left-file", left_file,
+        "--right-file", right_file,
+        "--quality", str(quality),
+        "--horizontal-field-of-view", str(horizontal_field_of_view),
+        "--output-file", output_file
+    ]
+    
+    if primary_eye == 'left':
+        cmd.append('--left-is-primary')
+    else:
+        cmd.append('--right-is-primary')
+
+    command = ' '.join(cmd)
+    logger.info(f"executing commnd: {command}")
+    
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    stdout, stderr = process.communicate()
+    
+    if process.returncode != 0:
+        logger.error(f"merge failed: {process.returncode}")
+        logger.error(f"err: {stderr}")
+        return False, stderr
+    
+    logger.info("merge done")
+    
+    s3_client = boto3.client('s3')
+    bucket_name = 'spcut-output-merge'
+    
+    try:
+        logger.info(f"uploading to s3: {output_file}")
+        s3_client.upload_file(output_file, bucket_name, output_file)
+        
+        url = s3_client.generate_presigned_url('get_object',
+                                                Params={'Bucket': bucket_name,
+                                                        'Key': output_file},
+                                                ExpiresIn=3600)
+        logger.info("Generated presigned URL for merged file")
+        return True, url
+    except Exception as e:
+        logger.error(f"Failed to upload merged file to S3: {str(e)}")
+        return False, str(e)
+
+
 def cleanup(inp):
     logger.info(f"cleaning: {inp}")
     input_file = f"{inp}.MOV"
@@ -170,6 +218,37 @@ def splitVideo():
     else:
         return jsonify({'error': 'Failed to download video'}), 500
     
+    
+@app.route('/merge', methods=['POST'])
+def mergeVideos():
+    data = request.json
+    uid = data.get('uid')
+    left_url = data.get('left_url')
+    right_url = data.get('right_url')
+    quality = data.get('quality', 0.8)
+    left_is_primary = data.get('primary_eye', 'left')
+    horizontal_field_of_view = data.get('horizontal_field_of_view', 63.4)
+    
+    if not left_url or not right_url:
+        return jsonify({'error': 'Both left and right video URLs are required'}), 400
+
+    left_file = 'left_' + left_url.split('/')[-1]
+    right_file = 'right_' + right_url.split('/')[-1]
+    output_file = f"{uid}_{int(time.time())}.mov"
+
+    if download_video(left_url, left_file) and download_video(right_url, right_file):
+        success, result = merge_videos(left_file, right_file, quality, left_is_primary, horizontal_field_of_view, output_file)
+        
+        cleanup(left_file.split('.')[0])
+        cleanup(right_file.split('.')[0])
+        
+        if success:
+            return jsonify({'output': result}), 200
+        else:
+            return jsonify({'error': f'Failed to merge videos: {result}'}), 500
+    else:
+        return jsonify({'error': 'Failed to download one or both videos'}), 500
+
 @app.route('/', methods=['GET'])
 def test():
     return jsonify({'message': 'Hello World!'})
