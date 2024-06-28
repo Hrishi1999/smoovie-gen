@@ -210,7 +210,7 @@ def processVideo():
         success, url = process_video(video_name, output_file)
         if not success:
             return jsonify({'error': 'Failed to process video'}), 500
-        cleanup()
+        # cleanup(video_name)
         return jsonify({'output': url}), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
