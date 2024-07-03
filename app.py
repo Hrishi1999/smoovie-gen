@@ -58,7 +58,7 @@ def process_video(inp, out):
 
 def process_video_ffmpeg(input_file, output_file):
     logger.info(f"Processing video with FFmpeg: {input_file}")
-    command = f'ffmpeg -i {input_file} -c:v libx264 -preset slower -crf 18 -c:a aac -b:a 320k {output_file}'
+    command = f'ffmpeg -i {input_file} -c:v libx264 -preset ultrafast -crf 18 -c:a aac -b:a 320k {output_file}'
     
     logger.info(f"Executing command: {command}")
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
