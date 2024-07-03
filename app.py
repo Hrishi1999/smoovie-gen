@@ -56,6 +56,22 @@ def process_video(inp, out):
 
     return True, presigned_url
 
+def process_video_ffmpeg(input_file, output_file):
+    logger.info(f"Processing video with FFmpeg: {input_file}")
+    command = f'ffmpeg -i {input_file} -c:v libx264 -preset slower -crf 18 -c:a aac -b:a 320k {output_file}'
+    
+    logger.info(f"Executing command: {command}")
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    
+    stdout, stderr = process.communicate()
+    
+    if process.returncode != 0:
+        logger.error(f"FFmpeg processing failed: {stderr}")
+        return False
+    
+    logger.info("FFmpeg processing completed successfully")
+    return True
+
 def split_video(inp):
     logger.info(f"Starting to split video: {inp}")
     command = f'./spatialmkt --input-file {inp}.MOV'
@@ -79,16 +95,21 @@ def split_video(inp):
 
     logger.info("uploading to s3")
     for suffix in ['LEFT', 'RIGHT']:
-        local_file = f'{inp}_{suffix}.mov'
+        input_file = f'{inp}_{suffix}.mov'
+        output_file = f'{inp}_{suffix}_processed.mp4'
         
-        if not os.path.exists(local_file):
-            logger.error(f"not found: {local_file}")
+        if not os.path.exists(input_file):
+            logger.error(f"not found: {input_file}")
             return False, {}
         
-        s3_key = f"{inp}_{suffix}.mov"
+        if not process_video_ffmpeg(input_file, output_file):
+            logger.error(f"FFmpeg processing failed for {input_file}")
+            return False, {}
         
-        logger.info(f"Uploading file to S3: {local_file}")
-        s3_client.upload_file(local_file, bucket_name, s3_key)
+        s3_key = output_file
+        
+        logger.info(f"Uploading processed file to S3: {output_file}")
+        s3_client.upload_file(output_file, bucket_name, s3_key)
         
         url = s3_client.generate_presigned_url('get_object',
                                                 Params={'Bucket': bucket_name,
@@ -96,6 +117,8 @@ def split_video(inp):
                                                 ExpiresIn=3600)
         result[suffix.lower()] = url
         logger.info(f"gen presigned url done {suffix}")
+
+        os.remove(output_file)
 
     logger.info("all good")
     return True, result
@@ -130,19 +153,6 @@ def merge_videos(left_file, right_file, quality, primary_eye, horizontal_field_o
         return False, stderr
     
     logger.info("merge done")
-    
-    metadata_cmd = f"./spatial metadata -i {output_file}"
-    logger.info(f"Adding metadata: {metadata_cmd}")
-    
-    metadata_process = subprocess.Popen(metadata_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    metadata_stdout, metadata_stderr = metadata_process.communicate()
-    
-    if metadata_process.returncode != 0:
-        logger.error(f"metadata addition failed: {metadata_process.returncode}")
-        logger.error(f"err: {metadata_stderr}")
-        return False, metadata_stderr
-    
-    logger.info("metadata added")
     
     s3_client = boto3.client('s3')
     bucket_name = 'spcut-output-merge'
