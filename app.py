@@ -131,6 +131,19 @@ def merge_videos(left_file, right_file, quality, primary_eye, horizontal_field_o
     
     logger.info("merge done")
     
+    metadata_cmd = f"./spatial metadata -i {output_file}"
+    logger.info(f"Adding metadata: {metadata_cmd}")
+    
+    metadata_process = subprocess.Popen(metadata_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    metadata_stdout, metadata_stderr = metadata_process.communicate()
+    
+    if metadata_process.returncode != 0:
+        logger.error(f"metadata addition failed: {metadata_process.returncode}")
+        logger.error(f"err: {metadata_stderr}")
+        return False, metadata_stderr
+    
+    logger.info("metadata added")
+    
     s3_client = boto3.client('s3')
     bucket_name = 'spcut-output-merge'
     
