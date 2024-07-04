@@ -97,7 +97,7 @@ def split_video(inp):
     logger.info("uploading to s3")
     for suffix in ['LEFT', 'RIGHT']:
         input_file = f'{inp}_{suffix}.mov'
-        output_file = f'{inp}_{suffix}_processed.mp4'
+        output_file = f'{inp}_{suffix}_processed.mov'
         
         if not os.path.exists(input_file):
             logger.error(f"not found: {input_file}")
