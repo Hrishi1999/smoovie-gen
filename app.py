@@ -124,54 +124,32 @@ def split_video(inp):
     logger.info("all good")
     return True, result
 
-
-def merge_videos(left_file, right_file, quality, primary_eye, horizontal_field_of_view, output_file):
+def merge_videos(left_file, right_file, output_file):
     logger.info(f"merging: {left_file} and {right_file}")
-    
-    cmd = [
-        "./spatialmkt", "merge",
-        "--left-file", left_file,
-        "--right-file", right_file,
-        "--quality", str(quality),
-        "--horizontal-field-of-view", str(horizontal_field_of_view),
-        "--output-file", output_file
-    ]
-    
-    if primary_eye == 'left':
-        cmd.append('--left-is-primary')
-    else:
-        cmd.append('--right-is-primary')
 
-    command = ' '.join(cmd)
-    logger.info(f"executing commnd: {command}")
-    
+    command = f"ffmpeg -i {left_file} -i {right_file} -filter_complex '[0:v]scale=1280:720[top]; [1:v]scale=1280:720[bottom]; [top][bottom]vstack=inputs=2' -c:v libx264 -pix_fmt yuv420p -s 1280x1440 {output_file}"
+    logger.info(f"executing command: {command}")
+
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
-    
+
     if process.returncode != 0:
         logger.error(f"merge failed: {process.returncode}")
         logger.error(f"err: {stderr}")
         return False, stderr
-    
-    logger.info("merge done")
-    
-    s3_client = boto3.client('s3')
-    bucket_name = 'spcut-output-merge'
-    
-    try:
-        logger.info(f"uploading to s3: {output_file}")
-        s3_client.upload_file(output_file, bucket_name, output_file)
-        
-        url = s3_client.generate_presigned_url('get_object',
-                                                Params={'Bucket': bucket_name,
-                                                        'Key': output_file},
-                                                ExpiresIn=3600)
-        logger.info("Generated presigned URL for merged file")
-        return True, url
-    except Exception as e:
-        logger.error(f"Failed to upload merged file to S3: {str(e)}")
-        return False, str(e)
 
+    logger.info("merge done")
+
+    # Call process_video instead of uploading to S3
+    success, url = process_video(output_file, output_file)
+    if not success:
+        logger.error(f"Failed to process merged video: {output_file}")
+        return False, ""
+
+    # Clean up the merged file
+    cleanup_merged(output_file)
+
+    return True, url
 
 def cleanup(inp):
     logger.info(f"cleaning: {inp}")
@@ -266,9 +244,6 @@ def mergeVideos():
     uid = data.get('uid')
     left_url = data.get('left_url')
     right_url = data.get('right_url')
-    quality = data.get('quality', 50)
-    primary_eye = data.get('primary_eye', 'left')
-    horizontal_field_of_view = data.get('horizontal_field_of_view', 63.4)
     
     if not left_url or not right_url:
         return jsonify({'error': 'Both left and right video URLs are required'}), 400
@@ -283,7 +258,7 @@ def mergeVideos():
     output_file = f"{uid}_{int(time.time())}.mov"
 
     if download_video(left_url, left_file) and download_video(right_url, right_file):
-        success, result = merge_videos(left_file, right_file, quality, primary_eye, horizontal_field_of_view, output_file)
+        success, result = merge_videos(left_file, right_file, output_file)
         
         cleanup_merged(left_file)
         cleanup_merged(right_file)
