@@ -33,7 +33,7 @@ def process_video(inp, out):
     for command in commands:
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         print('Running command: {}'.format(command))
-        stdout, stderr = process.communicate(input='\n')
+        stdout, stderr = process.communicate(input='y\n')
         print('Output: {}'.format(stdout))
         if process.returncode != 0:
             print('Error: {}'.format(stderr))
