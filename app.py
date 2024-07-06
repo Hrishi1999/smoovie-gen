@@ -31,15 +31,14 @@ def process_video(inp, out):
         './spatial make -i {0} -f ou -o {1} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --primary right --quality 0.8'.format(inp, out)
     ]
     for command in commands:
-        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         print('Running command: {}'.format(command))
-        print('Output: {}'.format(process.stdout.read()))
-        process.wait()
+        stdout, stderr = process.communicate(input='\n')
+        print('Output: {}'.format(stdout))
+        if process.returncode != 0:
+            print('Error: {}'.format(stderr))
+            return False, ''
 
-    if process.returncode != 0:
-        print('Error: {}'.format(process.stderr.read()))
-        return False, ''
-    
     s3 = boto3.client('s3')
     try:
         with open(out, 'rb') as data:
@@ -55,6 +54,7 @@ def process_video(inp, out):
         return False, None
 
     return True, presigned_url
+
 
 def process_video_ffmpeg(input_file, output_file):
     logger.info(f"Processing video with FFmpeg: {input_file}")
