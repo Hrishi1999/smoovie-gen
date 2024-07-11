@@ -53,6 +53,8 @@ def process_video(inp, out):
     except Exception as e:
         print(f"Error generating pre-signed URL: {e}")
         return False, None
+    
+    cleanup_merged(out)
 
     return True, presigned_url
 
@@ -233,7 +235,7 @@ def splitVideo():
         success, response = split_video(video_name)
         if not success:
             return jsonify({'error': 'Failed to split video'}), 500
-        cleanup(video_name)
+        cleanup(video_name + '.MOV')
         return jsonify(response), 200
     else:
         return jsonify({'error': 'Failed to download video'}), 500
