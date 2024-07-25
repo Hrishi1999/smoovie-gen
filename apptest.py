@@ -92,16 +92,20 @@ def process_video_ffmpeg(input_file, output_file):
 
 def process_segment(args):
     segment_file, request_id = args
-    output_segment = f"/tmp/processed_{request_id}_{os.path.basename(segment_file)}"
+    output_dir = "/tmp/processed_segments"
+    os.makedirs(output_dir, exist_ok=True)
+    output_segment = os.path.join(output_dir, f"processed_{request_id}_{os.path.basename(segment_file)}")
+    
     command = f'ffmpeg -i "{segment_file}" -c:v libx264 -preset ultrafast -crf 23 -vf "format=yuv420p" -c:a copy -movflags +faststart "{output_segment}"'
     
-    try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
-        logger.info(f"Segment processed successfully: {output_segment}")
-        return output_segment
-    except subprocess.CalledProcessError as e:
-        logger.error(f"Error processing segment {segment_file}: {e.stderr}")
-        raise
+    result = subprocess.run(command, shell=True, capture_output=True, text=True)
+    if result.returncode != 0:
+        logger.error(f"Error processing segment {segment_file}: {result.stderr}")
+        raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
+    
+    logger.info(f"Segment processed successfully: {output_segment}")
+    return output_segment
+
 
 def split_video(inp):
     logger.info(f"Starting to split video: {inp}")
