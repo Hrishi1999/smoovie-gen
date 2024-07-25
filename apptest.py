@@ -87,7 +87,9 @@ def process_video_ffmpeg(input_file, output_file):
 
 def process_segment(args):
     segment_file, request_id = args
-    output_segment = f"processed_{request_id}_{os.path.basename(segment_file)}"
+    output_dir = "processed_segments"
+    os.makedirs(output_dir, exist_ok=True)
+    output_segment = os.path.join(output_dir, f"processed_{request_id}_{os.path.basename(segment_file)}")
     command = f'ffmpeg -i "{segment_file}" -c:v libx265 -preset ultrafast -crf 18 -vf "format=yuv420p" -profile:v main -level 5.1 -tag:v hvc1 -c:a aac -b:a 320k -movflags +faststart "{output_segment}"'
 
     try:
@@ -96,7 +98,10 @@ def process_segment(args):
         return output_segment
     except subprocess.CalledProcessError as e:
         logger.error(f"Error processing segment {segment_file}: {e.stderr}")
+        logger.error(f"FFmpeg command: {command}")
+        logger.error(f"FFmpeg output: {e.output}")
         raise
+
 
 def split_video(inp):
     logger.info(f"Starting to split video: {inp}")
