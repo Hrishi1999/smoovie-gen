@@ -59,42 +59,37 @@ def process_video(inp, out):
 
     return True, presigned_url
 
-
 def process_video_ffmpeg(input_file, output_file):
     logger.info(f"Processing video with FFmpeg: {input_file}")
-    
+
     request_id = str(uuid.uuid4())
     segment_pattern = f"segment_{request_id}_%03d.ts"
-    concat_file = f"concat_list_{request_id}.txt"
-    
+
     segment_duration = "10"
     split_command = f'ffmpeg -i {input_file} -c copy -f segment -segment_time {segment_duration} -reset_timestamps 1 {segment_pattern}'
     subprocess.run(split_command, shell=True, check=True)
-    
+
     segment_files = sorted(glob.glob(f"segment_{request_id}_*.ts"))
     pool = multiprocessing.Pool()
     processed_segments = pool.map(process_segment, [(file, request_id) for file in segment_files])
     pool.close()
     pool.join()
-    
-    with open(concat_file, "w") as f:
-        for segment in processed_segments:
-            f.write(f"file '{segment}'\n")
-    
-    concat_command = f'ffmpeg -f concat -safe 0 -i {concat_file} -c copy {output_file}'
+
+    concat_input = '|'.join(processed_segments)
+    concat_command = f'ffmpeg -i "concat:{concat_input}" -c copy {output_file}'
     subprocess.run(concat_command, shell=True, check=True)
-    
-    for file in segment_files + processed_segments + [concat_file]:
+
+    for file in segment_files + processed_segments:
         os.remove(file)
-    
+
     logger.info("FFmpeg processing completed successfully")
     return True
 
 def process_segment(args):
     segment_file, request_id = args
-    output_segment = f"/tmp/processed_{request_id}_{os.path.basename(segment_file)}"
+    output_segment = f"processed_{request_id}_{os.path.basename(segment_file)}"
     command = f'ffmpeg -i "{segment_file}" -c:v libx265 -preset ultrafast -crf 18 -vf "format=yuv420p" -profile:v main -level 5.1 -tag:v hvc1 -c:a aac -b:a 320k -movflags +faststart "{output_segment}"'
-    
+
     try:
         result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
         logger.info(f"Segment processed successfully: {output_segment}")
