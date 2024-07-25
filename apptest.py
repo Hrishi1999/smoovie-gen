@@ -93,7 +93,7 @@ def process_video_ffmpeg(input_file, output_file):
 def process_segment(args):
     segment_file, request_id = args
     output_segment = f"/tmp/processed_{request_id}_{os.path.basename(segment_file)}"
-    command = f'ffmpeg -i "{segment_file}" -c:v libx265 -preset ultrafast -crf 18 -vf "format=yuv420p" -profile:v main -level 5.1 -tag:v hvc1 -c:a aac -b:a 320k -movflags +faststart "{output_segment}"'
+    command = f'ffmpeg -i "{segment_file}" -c:v libx264 -preset ultrafast -crf 23 -vf "format=yuv420p" -c:a copy -movflags +faststart "{output_segment}"'
     
     try:
         result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
