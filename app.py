@@ -14,12 +14,6 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def check_api_key():
-    api_key = request.headers.get('x-api-key')
-    if api_key != 'some api key':
-        return jsonify({'error': 'Unauthorized'}), 401
-    return None
-
 def download_video(url, save_path):
     response = requests.get(url)
     print(response.status_code)
@@ -208,10 +202,6 @@ def cleanup_merged(file):
 
 @app.route('/process', methods=['POST'])
 def processVideo():
-    auth_check = check_api_key()
-    if auth_check:
-        return auth_check
-    
     data = request.json
     video_url = data.get('url')
     if not video_url:
@@ -233,10 +223,6 @@ def processVideo():
 
 @app.route('/split', methods=['POST'])
 def splitVideo():
-    auth_check = check_api_key()
-    if auth_check:
-        return auth_check
-    
     data = request.json
     video_url = data.get('url')
     if not video_url:
@@ -257,10 +243,6 @@ def splitVideo():
     
 @app.route('/merge', methods=['POST'])
 def mergeVideos():
-    auth_check = check_api_key()
-    if auth_check:
-        return auth_check
-    
     data = request.json
     uid = data.get('uid')
     left_url = data.get('left_url')
@@ -294,9 +276,6 @@ def mergeVideos():
 
 @app.route('/', methods=['GET'])
 def test():
-    auth_check = check_api_key()
-    if auth_check:
-        return auth_check
     return jsonify({'message': 'Hello World!'})
 
 if __name__ == '__main__':
