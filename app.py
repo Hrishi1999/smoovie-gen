@@ -130,7 +130,7 @@ def split_video(inp):
 def merge_videos(left_file, right_file, output_file):
     logger.info(f"merging: {left_file} and {right_file}")
 
-    command = f'ffmpeg -i {left_file} -i {right_file} -filter_complex "[0:v]scale=3840:2160[top]; [1:v]scale=3840:2160[bottom]; [top][bottom]vstack=inputs=2" -c:v libx264 -pix_fmt yuv420p -s 3840x4320 {output_file}'
+    command = f'ffmpeg -i {left_file} -i {right_file} -filter_complex "[0:v]scale=iw:ih[top]; [1:v]scale=iw:ih[bottom]; [top][bottom]vstack=inputs=2" -c:v libx264 -pix_fmt yuv420p {output_file}'
     logger.info(f"executing command: {command}")
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
