@@ -142,17 +142,25 @@ def merge_videos(left_file, right_file, output_file):
 
     logger.info("merge done")
 
-    # Call process_video instead of uploading to S3
-    success, url = process_video(output_file, output_file)
-    if not success:
-        logger.error(f"Failed to process merged video: {output_file}")
-        return False, ""
+    # Upload the merged video directly to S3
+    s3 = boto3.client('s3')
+    try:
+        with open(output_file, 'rb') as data:
+            s3.upload_fileobj(data, "spcut-output", output_file)
+    except Exception as e:
+        logger.error(f"Error uploading file to S3: {e}")
+        return False, ''
+
+    try:
+        presigned_url = s3.generate_presigned_url('get_object', Params={'Bucket': "spcut-output", 'Key': output_file}, ExpiresIn=3600*24)
+    except Exception as e:
+        logger.error(f"Error generating pre-signed URL: {e}")
+        return False, None
 
     # Clean up the merged file
     cleanup_merged(output_file)
 
-    return True, url
-
+    return True, presigned_url
 def cleanup(inp):
     logger.info(f"cleaning: {inp}")
     input_file = f"{inp}.MOV"
