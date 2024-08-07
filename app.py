@@ -127,10 +127,10 @@ def split_video(inp):
     logger.info("all good")
     return True, result
 
-def merge_videos(left_file, right_file, output_file):
+def merge_videos(left_file, right_file, output_file, bitrate='20M', quality='1.0'):
     logger.info(f"merging: {left_file} and {right_file}")
 
-    command = f'./spatial make -i {right_file} -i {left_file} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --projection rect --hero right --primary right --bitrate 200M --quality 1.0 -o {output_file}'
+    command = f'./spatial make -i {right_file} -i {left_file} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --projection rect --hero right --primary right --bitrate {bitrate} --quality {quality} -o {output_file}'
     logger.info(f"executing command: {command}")
     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     stdout, stderr = process.communicate()
@@ -254,6 +254,11 @@ def mergeVideos():
     uid = data.get('uid')
     left_url = data.get('left_url')
     right_url = data.get('right_url')
+    bitrate = data.get('bitrate')
+    quality = data.get('quality')
+    
+    if quality > 1:
+        return jsonify({'error': 'Quality can not be greater than 1.0'}), 400
     
     if not left_url or not right_url:
         return jsonify({'error': 'Both left and right video URLs are required'}), 400
@@ -268,7 +273,7 @@ def mergeVideos():
     output_file = f"{uid}_{int(time.time())}.mov"
 
     if download_video(left_url, left_file) and download_video(right_url, right_file):
-        success, result = merge_videos(left_file, right_file, output_file)
+        success, result = merge_videos(left_file, right_file, output_file, bitrate, quality)
         
         cleanup_merged(left_file)
         cleanup_merged(right_file)
