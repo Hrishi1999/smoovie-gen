@@ -249,7 +249,7 @@ def mergeVideos():
     left_url = data.get('left_url')
     right_url = data.get('right_url')
     bitrate = data.get('bitrate')
-    quality = data.get('quality')
+    quality = data.get('quality', 0.5)
     
     if quality is not None and quality > 1:
         return jsonify({'error': 'Quality can not be greater than 1.0'}), 400
