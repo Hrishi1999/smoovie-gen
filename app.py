@@ -78,41 +78,35 @@ def process_video_ffmpeg(input_file, output_file):
 
 def split_video(inp):
     logger.info(f"Starting to split video: {inp}")
-    command = f'./spatialmkt --input-file {inp}.MOV'
+    command = f'./spatial export -i {inp}.MOV -o {inp}_LEFT.mov -o {inp}_RIGHT.mov'
     
     logger.info(f"Executing command: {command}")
-    process = subprocess.Popen(command, shell=True, stdin=subprocess.PIPE, 
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, 
-                                universal_newlines=True)
+    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
     
-    stdout, sterr = process.communicate(input='\n')
+    stdout, stderr = process.communicate()
     
     if process.returncode != 0:
-        logger.error(f"failed with code: {process.returncode}")
+        logger.error(f"Split failed with code: {process.returncode}")
+        logger.error(f"Error: {stderr}")
         return False, {}
     
-    logger.info("split done")
+    logger.info("Split completed successfully")
     
     s3_client = boto3.client('s3')
     bucket_name = 'spcut-split'
     result = {}
 
-    logger.info("uploading to s3")
+    logger.info("Uploading to S3")
     for suffix in ['LEFT', 'RIGHT']:
-        input_file = f'{inp}_{suffix}.mov'
-        output_file = f'{inp}_{suffix}_processed.mov'
+        output_file = f'{inp}_{suffix}.mov'
         
-        if not os.path.exists(input_file):
-            logger.error(f"not found: {input_file}")
-            return False, {}
-        
-        if not process_video_ffmpeg(input_file, output_file):
-            logger.error(f"FFmpeg processing failed for {input_file}")
+        if not os.path.exists(output_file):
+            logger.error(f"File not found: {output_file}")
             return False, {}
         
         s3_key = output_file
         
-        logger.info(f"Uploading processed file to S3: {output_file}")
+        logger.info(f"Uploading split file to S3: {output_file}")
         s3_client.upload_file(output_file, bucket_name, s3_key)
         
         url = s3_client.generate_presigned_url('get_object',
@@ -120,11 +114,11 @@ def split_video(inp):
                                                         'Key': s3_key},
                                                 ExpiresIn=3600)
         result[suffix.lower()] = url
-        logger.info(f"gen presigned url done {suffix}")
+        logger.info(f"Generated presigned URL for {suffix}")
 
         os.remove(output_file)
 
-    logger.info("all good")
+    logger.info("Split and upload completed successfully")
     return True, result
 
 def merge_videos(left_file, right_file, output_file, bitrate='20M', quality='1.0'):
