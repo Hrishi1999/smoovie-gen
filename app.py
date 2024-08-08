@@ -121,7 +121,7 @@ def split_video(inp):
     logger.info("Split and upload completed successfully")
     return True, result
 
-def merge_videos(left_file, right_file, output_file, bitrate='20M', quality='1.0'):
+def merge_videos(left_file, right_file, output_file, bitrate='20M', quality='0.5'):
     logger.info(f"merging: {left_file} and {right_file}")
 
     command = f'./spatial make -i {right_file} -i {left_file} --cdist 19.24 --hfov 63.4 --hadjust 0.02 --projection rect --hero right --primary right --bitrate {bitrate} --quality {quality} -o {output_file}'
